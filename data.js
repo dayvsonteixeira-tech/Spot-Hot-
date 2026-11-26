@@ -33,5 +33,5 @@ window.KPI_DATA = {
 
   // Contagem de hoje. Só aparece se "data" for o dia atual;
   // em qualquer outro dia o painel mostra 0 (zera sozinho à meia-noite).
-  hoje: { data: "26/11/2026", hot: 0, spot: 0 }
+  hoje: { data: "26/11/2026", hot: 20, spot: 80 }
 };
