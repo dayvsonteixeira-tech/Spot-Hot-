@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KPI mensal Hot & Spot</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f4f9;--card:#fff;--ink:#14213d;--mute:#5d6a85;--line:#e3e8f1;--spot:#1f3a73;--hot:#e0702f;--up:#17784f;--down:#b53838;--upbg:#e3f4ec;--downbg:#fbe8e8;--grid:#e8ecf4}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+.wrap{max-width:1100px;margin:0 auto;padding:28px 20px 48px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+h1{font-size:26px;font-weight:800;margin:0;letter-spacing:-.02em}
+.sub{color:var(--mute);font-size:13px;margin-top:4px}
+.legend{display:flex;gap:16px;font-size:13px;font-weight:500}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(12,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.card h2{font-size:15px;font-weight:700;margin:0}
+.card .note{color:var(--mute);font-size:12.5px;margin:2px 0 12px}
+.hero{grid-column:span 8;display:flex;flex-direction:column;gap:14px}
+.today{grid-column:span 4;display:flex;flex-direction:column;justify-content:space-between}
+.big{font-size:64px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.chip{font-size:13px;font-weight:700;padding:4px 10px;border-radius:99px}
+.chip.up{color:var(--up);background:var(--upbg)}.chip.down{color:var(--down);background:var(--downbg)}
+.split{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line)}
+.split i{display:block;height:100%}
+.facts{display:flex;gap:28px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
+.facts b{display:block;font-size:20px;color:var(--ink);font-weight:800}
+.wide{grid-column:span 12}.half{grid-column:span 6}
+svg{width:100%;height:auto;display:block;overflow:visible}
+svg text{font-family:inherit;fill:var(--mute);font-size:11px}
+svg .v{fill:var(--ink);font-weight:700}
+svg .gl{stroke:var(--grid);stroke-width:1}
+@media (max-width:820px){.hero,.today,.half{grid-column:span 12}.big{font-size:52px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1 id="titulo"></h1><div class="sub" id="sub"></div></div>
+  <div class="legend"><span><span class="dot" style="background:var(--hot)"></span>Hot</span><span><span class="dot" style="background:var(--spot)"></span>Spot</span></div>
+</header>
+<div class="grid">
+  <section class="card hero" id="hero"></section>
+  <section class="card today" id="today"></section>
+  <section class="card wide"><h2>Total geral por mês</h2><div class="note">Volume Hot + Spot empilhado, com a variação sobre o mês anterior abaixo de cada mês</div><div id="c1"></div></section>
+  <section class="card half"><h2>Média diária</h2><div class="note">Total dividido pelos dias com registro</div><div id="c2"></div></section>
+  <section class="card half"><h2>Participação do Hot no total</h2><div class="note">Percentual do Hot sobre o total geral de cada mês</div><div id="c3"></div></section>
+  <section class="card wide"><h2>Variação mês a mês</h2><div class="note">Crescimento do total de inserções em relação ao mês anterior</div><div id="c4"></div></section>
+</div>
+</div>
+<script src="data.js"></script>
+<script>
+(function(){
+var D=window.KPI_DATA||{meses:[]};
+var NOMES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+var $=function(id){return document.getElementById(id)};
+var fmt=function(n){return n.toLocaleString("pt-BR")};
+var dec=function(n){return n.toFixed(1).replace(".",",")};
+var pct=function(n){return dec(n)+"%"};
+
+// ---- prepara os dados (ordena e calcula tudo) ----
+var M=D.meses.slice().sort(function(a,b){return a.mes<b.mes?-1:1}).map(function(m,i,arr){
+  var mi=parseInt(m.mes.split("-")[1],10)-1, total=m.hot+m.spot;
+  var media=m.media!=null?m.media:(m.dias?total/m.dias:null);
+  var prev=i?arr[i-1].hot+arr[i-1].spot:null;
+  return {ano:m.mes.split("-")[0],nome:NOMES[mi],abrev:NOMES[mi].slice(0,3),hot:m.hot,spot:m.spot,total:total,media:media,
+    share:total?m.hot/total*100:0,delta:prev?(total/prev-1)*100:null};
+});
+if(!M.length){$("titulo").textContent="Sem dados em data.js";return}
+var n=M.length,last=M[n-1],prev=n>1?M[n-2]:null;
+
+// ---- cabeçalho, destaque e hoje ----
+$("titulo").textContent=D.titulo||"KPI mensal";
+var ya=M[0].ano,yb=last.ano;$("sub").textContent="Inserções por mês, de "+M[0].nome.toLowerCase()+(ya===yb?"":" de "+ya)+" a "+last.nome.toLowerCase()+" de "+yb+"."+(D.atualizadoEm?" Atualizado em "+D.atualizadoEm+".":"");
+var chip=last.delta==null?"":'<span class="chip '+(last.delta>=0?"up":"down")+'">'+(last.delta>=0?"▲ +":"▼ ")+pct(Math.abs(last.delta))+" vs "+prev.nome.toLowerCase()+"</span>";
+$("hero").innerHTML='<div><h2>'+last.nome+'</h2><div class="note">Total geral de inserções</div></div>'+
+ '<div class="row"><span class="big">'+fmt(last.total)+'</span>'+chip+'</div>'+
+ '<div class="split"><i style="width:'+last.share+'%;background:var(--hot)"></i><i style="width:'+(100-last.share)+'%;background:var(--spot)"></i></div>'+
+ '<div class="facts"><div><b style="color:var(--hot)">'+fmt(last.hot)+'</b>Hot · '+pct(last.share)+' do total</div>'+
+ '<div><b style="color:var(--spot)">'+fmt(last.spot)+'</b>Spot · '+pct(100-last.share)+' do total</div>'+
+ (last.media!=null?'<div><b>'+dec(last.media)+'</b>média por dia com registro</div>':'')+'</div>';
+
+var now=new Date(),hojeStr=("0"+now.getDate()).slice(-2)+"/"+("0"+(now.getMonth()+1)).slice(-2)+"/"+now.getFullYear();
+var H=D.hoje||{},isHoje=H.data===hojeStr,hh=isHoje?(H.hot||0):0,hs=isHoje?(H.spot||0):0;
+$("today").innerHTML='<div><h2>Hoje, '+hojeStr.slice(0,5)+'</h2><div class="note">Zera automaticamente à meia-noite</div></div>'+
+ '<div><div class="big">'+fmt(hh+hs)+'</div><div class="sub">inserções registradas até agora</div></div>'+
+ '<div class="facts"><div><b style="color:var(--hot)">'+hh+'</b>Hot</div><div><b style="color:var(--spot)">'+hs+'</b>Spot</div></div>';
+
+// ---- utilitários de escala ----
+function niceMax(v){var raw=v/5,mag=Math.pow(10,Math.floor(Math.log10(raw))),k=[1,2,2.5,5,10].find(function(x){return x*mag>=raw});var step=k*mag;return {step:step,max:Math.ceil(v/step)*step}}
+function svg(id,W,H,body,label){$(id).innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+label+'">'+body+'</svg>'}
+function ticks(L,W,T,ph,lo,hi,step,suffix,s){for(var g=lo;g<=hi+1e-9;g+=step){var y=T+ph-(g-lo)/(hi-lo)*ph;s.push('<line class="gl" x1="'+L+'" x2="'+W+'" y1="'+y+'" y2="'+y+'"/><text x="'+(L-8)+'" y="'+(y+4)+'" text-anchor="end">'+fmt(g)+suffix+'</text>')}}
+
+// ---- gráfico 1: total empilhado ----
+(function(){
+var W=900,Ht=310,L=44,T=24,B=56,pw=W-L-10,ph=Ht-T-B,sc=niceMax(Math.max.apply(null,M.map(function(m){return m.total}))),bw=Math.min(70,pw/n*.65),s=[];
+ticks(L,W,T,ph,0,sc.max,sc.step,"",s);
+M.forEach(function(m,i){var cx=L+(i+.5)*pw/n,x=cx-bw/2,hs=m.spot/sc.max*ph,hh=m.hot/sc.max*ph,yb=T+ph,d=m.delta;
+ s.push('<rect x="'+x+'" y="'+(yb-hh)+'" width="'+bw+'" height="'+hh+'" fill="var(--hot)"/>');
+ s.push('<rect x="'+x+'" y="'+(yb-hh-hs)+'" width="'+bw+'" height="'+hs+'" rx="4" fill="var(--spot)"/><rect x="'+x+'" y="'+(yb-hh-hs)+'" width="'+bw+'" height="8" fill="var(--spot)"/>');
+ s.push('<text class="v" x="'+cx+'" y="'+(yb-hh-hs-8)+'" text-anchor="middle" style="font-size:13px">'+fmt(m.total)+'</text>');
+ s.push('<text x="'+cx+'" y="'+(yb-hh-hs/2+4)+'" text-anchor="middle" style="fill:#fff;font-weight:700">'+fmt(m.spot)+'</text>');
+ if(hh>12)s.push('<text x="'+cx+'" y="'+(yb-hh/2+4)+'" text-anchor="middle" style="fill:#fff;font-weight:700">'+fmt(m.hot)+'</text>');
+ s.push('<text x="'+cx+'" y="'+(yb+20)+'" text-anchor="middle" style="font-size:12px;fill:var(--ink);font-weight:500">'+m.abrev+'</text>');
+ s.push('<text x="'+cx+'" y="'+(yb+40)+'" text-anchor="middle" style="fill:'+(d==null?"var(--mute)":d>=0?"var(--up)":"var(--down)")+';font-weight:700">'+(d==null?"início da série":(d>=0?"▲ +":"▼ ")+pct(Math.abs(d)))+'</text>')});
+svg("c1",W,Ht,s.join(""),"Total mensal empilhado Hot e Spot")})();
+
+// ---- gráfico 2: média diária ----
+(function(){
+var vals=M.filter(function(m){return m.media!=null});if(!vals.length)return;
+var W=440,Ht=250,L=34,T=20,B=28,pw=W-L,ph=Ht-T-B,mx=Math.max.apply(null,vals.map(function(m){return m.media})),sc=niceMax(mx),bw=Math.min(38,pw/n*.65),s=[];
+ticks(L,W,T,ph,0,sc.max,sc.step,"",s);
+M.forEach(function(m,i){var cx=L+(i+.5)*pw/n;s.push('<text x="'+cx+'" y="'+(T+ph+18)+'" text-anchor="middle">'+m.abrev+'</text>');if(m.media==null)return;
+ var h=m.media/sc.max*ph,y=T+ph-h;
+ s.push('<rect x="'+(cx-bw/2)+'" y="'+y+'" width="'+bw+'" height="'+h+'" rx="4" fill="var(--spot)" opacity="'+(m.media>=mx*.85?1:.55)+'"/><text class="v" x="'+cx+'" y="'+(y-6)+'" text-anchor="middle">'+dec(m.media)+'</text>')});
+svg("c2",W,Ht,s.join(""),"Média diária por mês")})();
+
+// ---- gráfico 3: participação do Hot ----
+(function(){
+var W=440,Ht=250,L=40,T=24,B=28,pw=W-L-14,ph=Ht-T-B,sh=M.map(function(m){return m.share}),
+ lo=Math.max(0,Math.floor((Math.min.apply(null,sh)-3)/4)*4),hi=Math.floor(Math.max.apply(null,sh)+2),s=[],pts=[];
+ticks(L,W,T,ph,lo,hi,4,"%",s);
+M.forEach(function(m,i){pts.push([L+(i+.5)*pw/n,T+ph-(m.share-lo)/(hi-lo)*ph])});
+var d=pts.map(function(p,i){return(i?"L":"M")+p[0]+" "+p[1]}).join(" ");
+s.push('<path d="'+d+" L"+pts[n-1][0]+" "+(T+ph)+" L"+pts[0][0]+" "+(T+ph)+'Z" fill="var(--hot)" opacity=".12"/><path d="'+d+'" fill="none" stroke="var(--hot)" stroke-width="2.5" stroke-linejoin="round"/>');
+pts.forEach(function(p,i){var below=(i>0&&sh[i]<sh[i-1]&&(i==n-1||sh[i]<=sh[i+1]));
+ s.push('<circle cx="'+p[0]+'" cy="'+p[1]+'" r="4.5" fill="var(--card)" stroke="var(--hot)" stroke-width="2.5"/><text class="v" x="'+p[0]+'" y="'+(p[1]+(below?22:-11))+'" text-anchor="middle">'+pct(sh[i])+'</text><text x="'+p[0]+'" y="'+(T+ph+18)+'" text-anchor="middle">'+M[i].abrev+'</text>')});
+svg("c3",W,Ht,s.join(""),"Participação do Hot por mês")})();
+
+// ---- gráfico 4: variação mês a mês ----
+(function(){
+var ds=M.map(function(m){return m.delta}).filter(function(v){return v!=null}),W=1000,Ht=270,L=48,T=26,B=30,pw=W-L-10,ph=Ht-T-B,bw=Math.min(84,pw/n*.65),s=[];
+var hi=Math.ceil((Math.max.apply(null,ds.concat([10]))+12)/20)*20,lo=Math.floor((Math.min.apply(null,ds.concat([-10]))-12)/20)*20;
+var Y=function(v){return T+(hi-v)/(hi-lo)*ph};
+for(var g=lo+20;g<=hi;g+=20)s.push('<line class="gl" x1="'+L+'" x2="'+W+'" y1="'+Y(g)+'" y2="'+Y(g)+'"'+(g===0?' style="stroke:var(--mute)"':'')+'/><text x="'+(L-8)+'" y="'+(Y(g)+4)+'" text-anchor="end">'+g+'%</text>');
+M.forEach(function(m,i){var cx=L+(i+.5)*pw/n,d=m.delta;
+ s.push('<text x="'+cx+'" y="'+(Ht-8)+'" text-anchor="middle" style="font-size:12px;fill:var(--ink);font-weight:500">'+m.abrev+'</text>');
+ if(d==null){s.push('<text class="v" x="'+cx+'" y="'+(Y(0)-8)+'" text-anchor="middle">início da série</text>');return}
+ var y0=Y(0),y1=Y(d),up=d>=0;
+ s.push('<rect x="'+(cx-bw/2)+'" y="'+Math.min(y0,y1)+'" width="'+bw+'" height="'+Math.max(2,Math.abs(y1-y0))+'" rx="4" fill="'+(up?"var(--up)":"var(--down)")+'"/><text class="v" x="'+cx+'" y="'+(up?y1-8:y1+18)+'" text-anchor="middle" style="font-size:13px">'+(up?"+":"-")+pct(Math.abs(d))+'</text>')});
+svg("c4",W,Ht,s.join(""),"Variação percentual mês a mês")})();
+})();
+</script>
+</body>
+</html>
