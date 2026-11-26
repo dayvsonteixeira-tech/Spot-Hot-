@@ -28,10 +28,10 @@ window.KPI_DATA = {
     { mes: "2026-08", hot: 372, spot: 1818, media: 70.6 },
     { mes: "2026-09", hot: 191, spot: 1153, media: 43.4 },
     { mes: "2026-10", hot: 247, spot: 1813, media: 66.5 },
-    { mes: "2026-11", hot: 222, spot: 1066, media: 42.5 }
+    { mes: "2026-11", hot: 229, spot: 1162, media: 42.5 }
   ],
 
   // Contagem de hoje. Só aparece se "data" for o dia atual;
   // em qualquer outro dia o painel mostra 0 (zera sozinho à meia-noite).
-  hoje: { data: "26/11/2026", hot: 20, spot: 80 }
+  hoje: { data: "26/11/2026", hot: 7, spot: 96 }
 };
